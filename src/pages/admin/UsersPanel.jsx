@@ -1,0 +1,113 @@
+import React, { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
+import GlassCard from "../../components/GlassCard";
+import { Select } from "../../components/FormField";
+import { useAuth } from "../../context/AuthContext";
+import { useActivityLog } from "../../context/ActivityLogContext";
+import { getMandalById } from "../../data/geography";
+
+const ALL_ROLES = ["Resident", "Volunteer", "Mandal Admin", "Administrator"];
+
+export default function UsersPanel() {
+  const { listUsers, updateUserRole, deleteUser, user: current } = useAuth();
+  const { log } = useActivityLog();
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState("");
+
+  // Only an Administrator can see or grant the Administrator role — a Mandal
+  // Admin managing users shouldn't even know it's an option. The backend
+  // enforces this independently (routes/users.js), this just keeps the UI
+  // from offering an action that would be rejected anyway.
+  const isSelfAdministrator = current?.role === "Administrator";
+  const assignableRoles = isSelfAdministrator ? ALL_ROLES : ALL_ROLES.filter((r) => r !== "Administrator");
+
+  const refresh = () => {
+    listUsers()
+      .then(setUsers)
+      .catch((err) => setError(err.message));
+  };
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleRole = async (u, role) => {
+    setError("");
+    try {
+      await updateUserRole(u.id, role);
+      await log(current?.name || "Admin", `Changed ${u.name}'s role to ${role}`);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDelete = async (u) => {
+    if (!window.confirm(`Remove user "${u.name}"?`)) return;
+    setError("");
+    try {
+      await deleteUser(u.id);
+      await log(current?.name || "Admin", `Removed user ${u.name}`);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">User Management</h2>
+      {error && <p className="mb-3 text-sm font-medium text-brand-red">{error}</p>}
+      <GlassCard className="overflow-x-auto !p-0">
+        <table className="w-full min-w-[700px] text-sm">
+          <thead>
+            <tr className="border-b border-neutral-200 text-left text-xs uppercase text-neutral-400 dark:border-neutral-800">
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Phone</th>
+              <th className="px-4 py-3">Mandal</th>
+              <th className="px-4 py-3">Role</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            {users.map((u) => {
+              const canEditRole = isSelfAdministrator || u.role !== "Administrator";
+              const rowOptions = canEditRole ? assignableRoles : [...assignableRoles, u.role];
+              const canDelete = u.id !== current?.id && (isSelfAdministrator || u.role !== "Administrator");
+              return (
+                <tr key={u.id}>
+                  <td className="px-4 py-3 font-semibold text-neutral-800 dark:text-neutral-100">{u.name}</td>
+                  <td className="px-4 py-3 text-neutral-500">{u.phone}</td>
+                  <td className="px-4 py-3 text-neutral-500">{u.mandalId ? getMandalById(u.mandalId)?.name : "—"}</td>
+                  <td className="px-4 py-3">
+                    <Select
+                      value={u.role}
+                      onChange={(e) => handleRole(u, e.target.value)}
+                      disabled={!canEditRole}
+                      className="!py-1.5 text-xs"
+                    >
+                      {rowOptions.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </Select>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => handleDelete(u)}
+                      disabled={!canDelete}
+                      className="rounded-lg p-1.5 text-brand-red hover:bg-red-50 disabled:opacity-30 dark:hover:bg-red-500/10"
+                      title="Remove user"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </GlassCard>
+    </div>
+  );
+}

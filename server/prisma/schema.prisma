@@ -1,0 +1,193 @@
+// Prisma schema for Supabase Postgres.
+//
+// Enum-like fields (role, category, status, priority, language, otp purpose)
+// are kept as plain String columns validated in application code, matching
+// the original Mongoose `enum: [...]` behavior — several of the real values
+// contain spaces/ampersands ("Mandal Admin", "Roads & Transport", "Waiting
+// for Funds"), which native Postgres enum identifiers can't represent
+// cleanly. CHECK constraints enforcing these are added in the migration SQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Pooled connection (port 6543) — used by the running app. Supabase's
+  // transaction-mode pooler doesn't support the prepared statements/DDL that
+  // migrations need, so those go through directUrl instead.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String
+  phone             String   @unique
+  passwordHash      String   @map("password_hash")
+  role              String   @default("Resident")
+  mandalId          String?  @map("mandal_id")
+  preferredLanguage String   @default("en") @map("preferred_language")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  reportedProblems    Problem[]        @relation("ReportedBy")
+  postedAnnouncements Announcement[]
+  volunteerProfile    Volunteer?
+  supportedProblems   ProblemSupport[]
+
+  @@map("users")
+}
+
+model Problem {
+  id                String   @id @default(uuid()) @db.Uuid
+  title             String
+  description       String
+  category          String
+  photo             String?
+  constituency      String   @default("Avanigadda Constituency")
+  mandalId          String   @map("mandal_id")
+  mandalName        String   @map("mandal_name")
+  village           String   @default("Not specified")
+  status            String   @default("New")
+  priority          String   @default("Medium")
+  lat               Float?
+  lng               Float?
+  reportedById      String   @map("reported_by") @db.Uuid
+  reportedBy        User     @relation("ReportedBy", fields: [reportedById], references: [id])
+  reportedByName    String   @map("reported_by_name")
+  supportCount      Int      @default(0) @map("support_count")
+  assignedVolunteer String?  @map("assigned_volunteer")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  photos         ProblemPhoto[]
+  progressPhotos ProgressPhoto[]
+  comments       Comment[]
+  statusHistory  StatusHistory[]
+  supporters     ProblemSupport[]
+
+  @@index([mandalId])
+  @@index([village])
+  @@index([status])
+  @@index([priority])
+  @@map("problems")
+}
+
+model ProblemPhoto {
+  id        String   @id @default(uuid()) @db.Uuid
+  problemId String   @map("problem_id") @db.Uuid
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  url       String
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([problemId])
+  @@map("problem_photos")
+}
+
+model ProgressPhoto {
+  id        String   @id @default(uuid()) @db.Uuid
+  problemId String   @map("problem_id") @db.Uuid
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  url       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([problemId])
+  @@map("progress_photos")
+}
+
+// `author` is a plain name string, not a User reference — matches the
+// original Mongoose subdocument exactly (comments are never edited/deleted
+// by their author via a relation, only displayed).
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  problemId String   @map("problem_id") @db.Uuid
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  author    String
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([problemId])
+  @@map("comments")
+}
+
+// One row per status change — this is the app's existing "timeline" feature,
+// and also doubles as the "status history" the migration spec asked for.
+model StatusHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  problemId String   @map("problem_id") @db.Uuid
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  status    String
+  date      DateTime @default(now())
+
+  @@index([problemId])
+  @@map("status_history")
+}
+
+// Many-to-many "upvote" relation (Mongoose's Problem.supportedBy[]). A real
+// unique constraint here replaces what used to be an app-level-only check
+// for "already supported."
+model ProblemSupport {
+  problemId String   @map("problem_id") @db.Uuid
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([problemId, userId])
+  @@map("problem_supporters")
+}
+
+model Volunteer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  mandalId  String   @map("mandal_id")
+  resolved  Int      @default(0)
+  points    Int      @default(0)
+  userId    String?  @unique @map("user_id") @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([mandalId])
+  @@map("volunteers")
+}
+
+model Announcement {
+  id         String   @id @default(uuid()) @db.Uuid
+  title      String
+  body       String
+  mandalId   String?  @map("mandal_id")
+  postedById String   @map("posted_by") @db.Uuid
+  postedBy   User     @relation(fields: [postedById], references: [id])
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("announcements")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actor     String
+  action    String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("activity_log")
+}
+
+model OtpCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  phone      String
+  purpose    String
+  codeHash   String    @map("code_hash")
+  expiresAt  DateTime  @map("expires_at")
+  attempts   Int       @default(0)
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([phone, purpose])
+  @@map("otp_codes")
+}

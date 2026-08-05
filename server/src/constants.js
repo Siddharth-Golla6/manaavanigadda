@@ -1,0 +1,24 @@
+// Shared option lists — validated at the application layer here, and also
+// enforced at the database layer via CHECK constraints
+// (prisma/sql/constraints.sql). Keep both in sync if these ever change.
+
+export const ROLE_OPTIONS = ["Resident", "Volunteer", "Mandal Admin", "Administrator"];
+export const PRIORITY_OPTIONS = ["Critical", "Medium", "Low"];
+export const STATUS_OPTIONS = [
+  "New",
+  "Verified",
+  "In Progress",
+  "Waiting for Funds",
+  "Completed",
+  "Rejected",
+];
+export const CATEGORY_OPTIONS = [
+  "Roads & Transport",
+  "Water Supply",
+  "Electricity",
+  "Sanitation & Waste",
+  "Drainage",
+  "Public Health",
+  "Education",
+  "Street Lighting",
+];
