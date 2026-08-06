@@ -49,18 +49,7 @@ cp .env.example .env    # defaults to http://localhost:4000/api, edit if needed
 npm run dev              # starts on :5174
 ```
 
-## Demo accounts
 
-Created by `npm run seed`, all with password `password123`:
-
-| Phone        | Role         |
-|--------------|--------------|
-| 9876500001   | Resident     |
-| 9876500002   | Volunteer    |
-| 9876500004   | Mandal Admin |
-| 9876500000   | Administrator |
-
-Use `/admin-login` for the two admin accounts, `/login` for the rest.
 
 ## Database (Supabase Postgres via Prisma)
 
