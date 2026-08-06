@@ -49,7 +49,16 @@ cp .env.example .env    # defaults to http://localhost:4000/api, edit if needed
 npm run dev              # starts on :5174
 ```
 
+## Demo accounts
 
+`npm run seed` creates one demo account per role (Resident, Volunteer,
+Mandal Admin, Administrator) and prints their phone numbers and a
+freshly-generated random password to your terminal when it finishes —
+nothing is hardcoded, so there's no fixed credential sitting in this repo.
+Use `/admin-login` for the two admin accounts, `/login` for the rest.
+
+**`npm run seed` wipes all existing data first** — only run it against a
+database you're OK clearing, never against a live/production one.
 
 ## Database (Supabase Postgres via Prisma)
 
@@ -108,8 +117,9 @@ local testing.
 
 ## Deployment
 
-- **Frontend → Vercel.** Build command `npm run build`, output `dist/`. Set
-  `VITE_API_URL` to your Render backend's URL + `/api`.
+- **Frontend → Netlify.** Build command `npm run build`, publish directory
+  `dist/` (both already set in `netlify.toml`). Set `VITE_API_URL` to your
+  Render backend's URL + `/api` in Netlify's environment variables.
 - **Backend → Render.** Build command `npm install && npx prisma generate`,
   start command `npm start`. Binds to `process.env.PORT` (Render sets this
   automatically). Set every var from `server/.env.example` in Render's
@@ -117,15 +127,15 @@ local testing.
 - **Database → Supabase Postgres**, already covered above.
 - **Images → Cloudflare R2**, already covered above.
 
-Set `CORS_ORIGIN` (backend) to your exact Vercel URL once deployed — it falls
-back to allowing any origin if unset, which is fine for local dev but not for
-production.
+Set `CORS_ORIGIN` (backend) to your exact Netlify URL once deployed — it
+falls back to allowing any origin if unset, which is fine for local dev but
+not for production.
 
 ## Security hardening (done before going live)
 
-- No demo credentials are shown anywhere in the UI (removed from Login and
-  Admin Login pages — they used to display seeded phone numbers and the
-  shared `password123`, which is a real risk once this is public).
+- No demo credentials are shown anywhere in the UI, README, or seed script —
+  `npm run seed` generates a random password per run (see "Demo accounts"
+  above) instead of a fixed, publicly-known one.
 - OTP codes are never returned by the API in any mode — check server console
   logs for local testing.
 - `server/src/utils/sanitize.js` strips `$`-prefixed/dotted keys from

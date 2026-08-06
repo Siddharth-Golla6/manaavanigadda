@@ -3,12 +3,17 @@
 // Run with: npm run seed  (requires DATABASE_URL to point at a real database)
 
 import "dotenv/config";
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "./config/prisma.js";
 import { MANDALS } from "./data/geography.js";
 import { categoryImage } from "./data/categoryImage.js";
 
-const DEMO_PASSWORD = "password123";
+// Generated fresh on every run and never written to disk or git — a fixed,
+// well-known seed password (this used to be the literal string
+// "password123") is a real risk the moment this file is public, since these
+// accounts include an Administrator with full platform access.
+const DEMO_PASSWORD = crypto.randomBytes(9).toString("base64url");
 const mandalName = (id) => MANDALS.find((m) => m.id === id)?.name;
 
 async function seed() {

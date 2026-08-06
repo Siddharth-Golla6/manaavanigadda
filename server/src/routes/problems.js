@@ -3,12 +3,19 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { CATEGORY_OPTIONS, PRIORITY_OPTIONS, STATUS_OPTIONS } from "../constants.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { requireAuth, requireAdmin, optionalAuth } from "../middleware/auth.js";
 import { sendSms } from "../services/sms.js";
 import { isValidPhotoDataUri } from "../utils/validatePhoto.js";
 import { uploadPhotos } from "../services/storage.js";
 
 const MAX_PHOTOS = 10;
+
+// Volunteers, Mandal Admins, and Administrators can see a complaint's reporter
+// contact details and pending ("New", not-yet-verified) complaints. Residents
+// and anonymous visitors see neither — only complaints an admin has verified,
+// with no reporter name/phone attached.
+const STAFF_ROLES = ["Volunteer", "Mandal Admin", "Administrator"];
+const isStaff = (user) => Boolean(user && STAFF_ROLES.includes(user.role));
 
 const router = Router();
 
@@ -22,7 +29,7 @@ const PROBLEM_INCLUDE = {
 // Reshapes a Prisma Problem (with its related rows included) back into the
 // same flat JSON shape the frontend has always consumed — photos/comments/
 // timeline as plain arrays, not Prisma's relation objects.
-function toProblemJSON(problem) {
+function toProblemJSON(problem, { includeContact = false } = {}) {
   return {
     id: problem.id,
     title: problem.title,
@@ -39,7 +46,8 @@ function toProblemJSON(problem) {
     lat: problem.lat,
     lng: problem.lng,
     reportedBy: problem.reportedById,
-    reportedByName: problem.reportedByName,
+    reportedByName: includeContact ? problem.reportedByName : null,
+    reportedByPhone: includeContact ? problem.reportedByPhone : null,
     supportCount: problem.supportCount,
     assignedVolunteer: problem.assignedVolunteer,
     comments: problem.comments.map((c) => ({ author: c.author, text: c.text, date: c.createdAt })),
@@ -52,8 +60,11 @@ function toProblemJSON(problem) {
 
 router.get(
   "/",
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const { mandalId, village, category, priority, status, q } = req.query;
+    const staff = isStaff(req.user);
+
     const where = {};
     if (mandalId) where.mandalId = mandalId;
     if (village) where.village = village;
@@ -67,24 +78,33 @@ router.get(
         { village: { contains: q, mode: "insensitive" } },
       ];
     }
+    // A complaint stays invisible on public dashboards until a Mandal Admin
+    // or Administrator verifies it (moves it off "New") — Residents and
+    // anonymous visitors never see unverified reports, even if they try to
+    // filter for status=New explicitly.
+    if (!staff) where.AND = [...(where.AND || []), { status: { not: "New" } }];
+
     const problems = await prisma.problem.findMany({
       where,
       orderBy: { createdAt: "desc" },
       include: PROBLEM_INCLUDE,
     });
-    res.json({ problems: problems.map(toProblemJSON) });
+    res.json({ problems: problems.map((p) => toProblemJSON(p, { includeContact: staff })) });
   })
 );
 
 router.get(
   "/:id",
+  optionalAuth,
   asyncHandler(async (req, res) => {
     const problem = await prisma.problem.findUnique({
       where: { id: req.params.id },
       include: PROBLEM_INCLUDE,
     });
     if (!problem) return res.status(404).json({ error: "Problem not found." });
-    res.json({ problem: toProblemJSON(problem) });
+    const staff = isStaff(req.user);
+    const isOwner = Boolean(req.user && req.user.id === problem.reportedById);
+    res.json({ problem: toProblemJSON(problem, { includeContact: staff || isOwner }) });
   })
 );
 
@@ -92,10 +112,13 @@ router.post(
   "/",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const { title, description, category, mandalId, mandalName, village, photo, photos, lat, lng } = req.body;
+    const { title, description, category, mandalId, mandalName, village, photo, photos, lat, lng, reporterName, reporterPhone } = req.body;
 
     if (!title?.trim() || !description?.trim() || !category || !mandalId || !mandalName) {
       return res.status(400).json({ error: "Title, description, category, and Mandal are required." });
+    }
+    if (!reporterName?.trim() || !reporterPhone?.trim()) {
+      return res.status(400).json({ error: "Your name and phone number are required." });
     }
     if (!CATEGORY_OPTIONS.includes(category)) {
       return res.status(400).json({ error: "Invalid category." });
@@ -128,7 +151,8 @@ router.post(
         lat: lat ?? null,
         lng: lng ?? null,
         reportedById: req.user.id,
-        reportedByName: req.user.name,
+        reportedByName: reporterName.trim(),
+        reportedByPhone: reporterPhone.trim(),
         // status/priority intentionally NOT taken from the client — new reports always
         // start as "New" / "Medium"; priority is admin-only from here on.
         photos: { create: uploadedPhotos.map((url, position) => ({ url, position })) },
@@ -137,7 +161,7 @@ router.post(
       include: PROBLEM_INCLUDE,
     });
 
-    res.status(201).json({ problem: toProblemJSON(problem) });
+    res.status(201).json({ problem: toProblemJSON(problem, { includeContact: true }) });
   })
 );
 
@@ -200,7 +224,7 @@ router.patch(
         });
       }
     }
-    res.json({ problem: toProblemJSON(problem) });
+    res.json({ problem: toProblemJSON(problem, { includeContact: true }) });
   })
 );
 
@@ -238,7 +262,8 @@ router.post(
       data: { comments: { create: [{ author: req.user.name, text: text.trim() }] } },
       include: PROBLEM_INCLUDE,
     });
-    res.status(201).json({ problem: toProblemJSON(problem) });
+    const includeContact = isStaff(req.user) || req.user.id === existing.reportedById;
+    res.status(201).json({ problem: toProblemJSON(problem, { includeContact }) });
   })
 );
 
@@ -262,7 +287,8 @@ router.post(
     }
 
     const problem = await prisma.problem.findUnique({ where: { id: existing.id }, include: PROBLEM_INCLUDE });
-    res.json({ problem: toProblemJSON(problem) });
+    const includeContact = isStaff(req.user) || req.user.id === existing.reportedById;
+    res.json({ problem: toProblemJSON(problem, { includeContact }) });
   })
 );
 

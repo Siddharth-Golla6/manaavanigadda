@@ -10,6 +10,12 @@ export async function requireAuth(req, res, next) {
     const payload = verifyToken(token);
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) return res.status(401).json({ error: "User no longer exists." });
+    // A password reset bumps tokenVersion — any token signed before that
+    // point (payload.tokenVersion is stale) is rejected, so resetting a
+    // password immediately logs out every other active session for it.
+    if ((payload.tokenVersion || 0) !== user.tokenVersion) {
+      return res.status(401).json({ error: "Invalid or expired session." });
+    }
     req.user = user;
     next();
   } catch {
@@ -36,7 +42,8 @@ export async function optionalAuth(req, _res, next) {
   if (!token) return next();
   try {
     const payload = verifyToken(token);
-    req.user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    if (user && (payload.tokenVersion || 0) === user.tokenVersion) req.user = user;
   } catch {
     // ignore invalid token for optional auth
   }

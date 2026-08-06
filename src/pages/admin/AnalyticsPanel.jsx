@@ -6,18 +6,18 @@ import {
 import GlassCard from "../../components/GlassCard";
 import { useProblems } from "../../context/ProblemsContext";
 import { useVolunteers } from "../../context/VolunteersContext";
+import { useLang } from "../../context/LanguageContext";
 import { MANDALS } from "../../data/geography";
 import { CATEGORY_OPTIONS } from "../../data/mockData";
 
 const PIE_COLORS = ["#D32F2F", "#FFC107", "#059669", "#0891B2", "#7C3AED", "#EA580C", "#4B5563", "#DB2777"];
 
-function monthKey(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-}
-
 export default function AnalyticsPanel() {
+  const { t, lang } = useLang();
   const { problems } = useProblems();
   const { volunteers } = useVolunteers();
+  const dateLocale = lang === "te" ? "te-IN" : "en-IN";
+  const monthKey = (dateStr) => new Date(dateStr).toLocaleDateString(dateLocale, { month: "short", year: "2-digit" });
 
   const byMandal = useMemo(
     () => MANDALS.map((m) => ({ name: m.name.replace(" Mandal", ""), value: problems.filter((p) => p.mandalId === m.id).length })),
@@ -36,8 +36,8 @@ export default function AnalyticsPanel() {
   }, [problems]);
 
   const byCategory = useMemo(
-    () => CATEGORY_OPTIONS.map((c) => ({ name: c, value: problems.filter((p) => p.category === c).length })).filter((c) => c.value > 0),
-    [problems]
+    () => CATEGORY_OPTIONS.map((c) => ({ name: t(`cat.${c}`), value: problems.filter((p) => p.category === c).length })).filter((c) => c.value > 0),
+    [problems, t]
   );
 
   const monthlyTrend = useMemo(() => {
@@ -47,7 +47,7 @@ export default function AnalyticsPanel() {
       map[k] = (map[k] || 0) + 1;
     });
     return Object.entries(map).map(([month, complaints]) => ({ month, complaints })).sort((a, b) => (a.month > b.month ? 1 : -1));
-  }, [problems]);
+  }, [problems, lang]);
 
   const volunteerActivity = useMemo(
     () => [...volunteers].sort((a, b) => b.resolved - a.resolved).slice(0, 8).map((v) => ({ name: v.name, resolved: v.resolved })),
@@ -56,11 +56,11 @@ export default function AnalyticsPanel() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-bold text-neutral-900 dark:text-white">Analytics Dashboard</h2>
+      <h2 className="text-lg font-bold text-neutral-900 dark:text-white">{t("admin.analytics.title")}</h2>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <GlassCard>
-          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">Complaints by Mandal</h3>
+          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("admin.analytics.byMandal")}</h3>
           <div className="h-64"><ResponsiveContainer width="100%" height="100%">
             <BarChart data={byMandal} margin={{ left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -73,7 +73,7 @@ export default function AnalyticsPanel() {
         </GlassCard>
 
         <GlassCard>
-          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">Top Villages by Complaints</h3>
+          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("admin.analytics.topVillages")}</h3>
           <div className="h-64"><ResponsiveContainer width="100%" height="100%">
             <BarChart data={byVillage} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -86,7 +86,7 @@ export default function AnalyticsPanel() {
         </GlassCard>
 
         <GlassCard>
-          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">Complaints by Category</h3>
+          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("dashboard.byCategory")}</h3>
           <div className="h-64"><ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie data={byCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} label={{ fontSize: 10 }}>
@@ -99,7 +99,7 @@ export default function AnalyticsPanel() {
         </GlassCard>
 
         <GlassCard>
-          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">Monthly Complaint Trend</h3>
+          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("admin.analytics.monthly")}</h3>
           <div className="h-64"><ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthlyTrend} margin={{ left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -112,7 +112,7 @@ export default function AnalyticsPanel() {
         </GlassCard>
 
         <GlassCard>
-          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">Volunteer Activity (Top 8)</h3>
+          <h3 className="mb-3 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("admin.analytics.volunteerActivity")}</h3>
           <div className="h-64"><ResponsiveContainer width="100%" height="100%">
             <BarChart data={volunteerActivity} layout="vertical" margin={{ left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" opacity={0.2} />

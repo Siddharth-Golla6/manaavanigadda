@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
 export function signToken(user) {
-  return jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_SECRET, {
+  return jwt.sign({ sub: user.id, role: user.role, tokenVersion: user.tokenVersion }, process.env.JWT_SECRET, {
     expiresIn: "30d",
   });
 }

@@ -9,6 +9,8 @@ import { CATEGORY_OPTIONS } from "../data/mockData";
 import { categoryImage } from "../utils/placeholderImage";
 import { compressImage } from "../utils/compressImage";
 import { useProblems } from "../context/ProblemsContext";
+import { useLang } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 
 const emptyForm = {
   title: "",
@@ -19,10 +21,14 @@ const emptyForm = {
 };
 
 export default function ReportProblem() {
+  const { t } = useLang();
   const { addProblem } = useProblems();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState(emptyForm);
+  const [reporterName, setReporterName] = useState(user?.name || "");
+  const [reporterPhone, setReporterPhone] = useState(user?.phone || "");
   const [location, setLocation] = useState(null);
   const [photoDataUrls, setPhotoDataUrls] = useState([]);
   const [error, setError] = useState("");
@@ -40,7 +46,7 @@ export default function ReportProblem() {
 
     const remaining = MAX_PHOTOS - photoDataUrls.length;
     if (remaining <= 0) {
-      setError(`You can upload up to ${MAX_PHOTOS} photos.`);
+      setError(t("report.error.maxPhotos", { max: MAX_PHOTOS }));
       return;
     }
 
@@ -49,7 +55,7 @@ export default function ReportProblem() {
         const dataUrl = await compressImage(file);
         setPhotoDataUrls((prev) => [...prev, dataUrl]);
       } catch {
-        setError("One of the selected photos couldn't be read. Try a different file.");
+        setError(t("report.error.badPhoto"));
       }
     }
   };
@@ -61,8 +67,8 @@ export default function ReportProblem() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!form.title.trim() || !form.category || !form.mandalId || !form.description.trim()) {
-      setError("Please fill in Title, Category, Mandal and Description.");
+    if (!form.title.trim() || !form.category || !form.mandalId || !form.description.trim() || !reporterName.trim() || !reporterPhone.trim()) {
+      setError(t("report.error.required"));
       return;
     }
 
@@ -84,6 +90,8 @@ export default function ReportProblem() {
         village: form.village || "Not specified",
         lat: location?.lat ?? null,
         lng: location?.lng ?? null,
+        reporterName: reporterName.trim(),
+        reporterPhone: reporterPhone.trim(),
       });
       setSubmittedId(created.id);
     } catch (err) {
@@ -95,23 +103,22 @@ export default function ReportProblem() {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-20 text-center">
         <CheckCircle2 size={56} className="mb-4 text-emerald-500" />
-        <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">Problem Reported</h1>
+        <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">{t("report.success.title")}</h1>
         <p className="mt-2 text-neutral-500 dark:text-neutral-400">
-          Thank you. Your report has been submitted with status <strong>New</strong> and will be
-          verified by the Mandal Admin. Priority is assigned by the admin team.
+          {t("report.success.body")}
         </p>
         <div className="mt-6 flex gap-3">
           <button
             onClick={() => navigate(`/problem/${submittedId}`)}
             className="rounded-lg bg-brand-red px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-red-dark"
           >
-            View Report
+            {t("report.success.viewReport")}
           </button>
           <button
             onClick={() => navigate("/dashboard")}
             className="rounded-lg border border-neutral-300 px-5 py-2.5 text-sm font-semibold text-neutral-700 dark:border-neutral-700 dark:text-neutral-200"
           >
-            Back to Dashboard
+            {t("report.success.backToDashboard")}
           </button>
         </div>
       </div>
@@ -120,58 +127,82 @@ export default function ReportProblem() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-bold text-neutral-900 dark:text-white sm:text-3xl">Report a Problem</h1>
+      <h1 className="text-2xl font-bold text-neutral-900 dark:text-white sm:text-3xl">{t("report.title")}</h1>
       <p className="mt-1 mb-6 text-sm text-neutral-500 dark:text-neutral-400">
-        Priority is assessed and set by the Mandal Admin after review — you don't need to set it.
+        {t("report.subtitle")}
       </p>
 
       <GlassCard as="form" onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <Label htmlFor="title" required>Title</Label>
+          <Label htmlFor="title" required>{t("report.field.title")}</Label>
           <Input
             id="title"
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
-            placeholder="e.g. Pothole near bus stand"
+            placeholder={t("report.field.titlePh")}
             required
           />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="category" required>Category</Label>
+            <Label htmlFor="reporterName" required>{t("report.field.reporterName")}</Label>
+            <Input
+              id="reporterName"
+              value={reporterName}
+              onChange={(e) => setReporterName(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="reporterPhone" required>{t("report.field.reporterPhone")}</Label>
+            <Input
+              id="reporterPhone"
+              type="tel"
+              inputMode="numeric"
+              value={reporterPhone}
+              onChange={(e) => setReporterPhone(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        <p className="-mt-3 text-xs text-neutral-500 dark:text-neutral-400">{t("report.field.contactNote")}</p>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="category" required>{t("report.field.category")}</Label>
             <Select id="category" value={form.category} onChange={(e) => set("category", e.target.value)} required>
-              <option value="">Select category</option>
+              <option value="">{t("report.field.categoryPh")}</option>
               {CATEGORY_OPTIONS.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>{t(`cat.${c}`)}</option>
               ))}
             </Select>
           </div>
           <div>
-            <Label htmlFor="constituency">Constituency</Label>
-            <Input id="constituency" value="Avanigadda Constituency" readOnly disabled />
+            <Label htmlFor="constituency">{t("report.field.constituency")}</Label>
+            <Input id="constituency" value={t("dashboard.constituency")} readOnly disabled />
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="mandal" required>Mandal</Label>
+            <Label htmlFor="mandal" required>{t("report.field.mandal")}</Label>
             <Select
               id="mandal"
               value={form.mandalId}
               onChange={(e) => setForm((f) => ({ ...f, mandalId: e.target.value, village: "" }))}
               required
             >
-              <option value="">Select Mandal</option>
+              <option value="">{t("report.field.mandalPh")}</option>
               {MANDALS.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </Select>
           </div>
           <div>
-            <Label htmlFor="village">Village (optional)</Label>
+            <Label htmlFor="village">{t("report.field.village")}</Label>
             <Select id="village" value={form.village} onChange={(e) => set("village", e.target.value)} disabled={!form.mandalId}>
-              <option value="">Select village</option>
+              <option value="">{t("report.field.villagePh")}</option>
               {villages.map((v) => (
                 <option key={v} value={v}>{v}</option>
               ))}
@@ -180,29 +211,29 @@ export default function ReportProblem() {
         </div>
 
         <div>
-          <Label htmlFor="description" required>Description</Label>
+          <Label htmlFor="description" required>{t("report.field.description")}</Label>
           <Textarea
             id="description"
             rows={4}
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
-            placeholder="Describe the problem in detail…"
+            placeholder={t("report.field.descriptionPh")}
             required
           />
         </div>
 
         <div>
-          <Label htmlFor="photo">Photo Upload</Label>
+          <Label htmlFor="photo">{t("report.field.photo")}</Label>
 
           {photoDataUrls.length > 0 && (
             <div className="mb-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
               {photoDataUrls.map((url, i) => (
                 <div key={i} className="group relative h-24 overflow-hidden rounded-lg">
-                  <img src={url} alt={`Selected ${i + 1}`} className="h-full w-full object-cover" />
+                  <img src={url} alt={t("report.selectedAlt", { n: i + 1 })} className="h-full w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removePhoto(i)}
-                    aria-label="Remove photo"
+                    aria-label={t("report.removePhoto")}
                     className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100"
                   >
                     <X size={14} />
@@ -220,8 +251,8 @@ export default function ReportProblem() {
               <UploadCloud size={28} className="mb-2 text-neutral-400" />
               <span className="text-sm text-neutral-500">
                 {photoDataUrls.length > 0
-                  ? `Add more photos (${photoDataUrls.length}/${MAX_PHOTOS})`
-                  : "Click to upload photos"}
+                  ? t("report.uploadMore", { count: photoDataUrls.length, max: MAX_PHOTOS })
+                  : t("report.uploadClick")}
               </span>
             </label>
           )}
@@ -236,7 +267,7 @@ export default function ReportProblem() {
         </div>
 
         <div>
-          <Label>GPS Location</Label>
+          <Label>{t("report.field.gps")}</Label>
           <MapPicker value={location} onChange={setLocation} />
         </div>
 
@@ -246,7 +277,7 @@ export default function ReportProblem() {
           type="submit"
           className="w-full rounded-lg bg-brand-red py-3 text-sm font-bold text-white shadow-md transition hover:bg-brand-red-dark"
         >
-          Submit Report
+          {t("report.submit")}
         </button>
       </GlassCard>
     </div>

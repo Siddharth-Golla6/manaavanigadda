@@ -21,22 +21,50 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(uuid()) @db.Uuid
-  name              String
-  phone             String   @unique
-  passwordHash      String   @map("password_hash")
-  role              String   @default("Resident")
-  mandalId          String?  @map("mandal_id")
-  preferredLanguage String   @default("en") @map("preferred_language")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid()) @db.Uuid
+  name               String
+  phone              String   @unique
+  passwordHash       String   @map("password_hash")
+  role               String   @default("Resident")
+  mandalId           String?  @map("mandal_id")
+  preferredLanguage  String   @default("en") @map("preferred_language")
+  // Forgot-password-by-security-question. Nullable because accounts created
+  // before this feature existed won't have one set — their only reset path
+  // remains the admin-mediated one in the Users panel.
+  securityQuestionId String?  @map("security_question_id")
+  securityAnswerHash String?  @map("security_answer_hash")
+  // Bumped on every password reset; embedded in issued JWTs so a reset
+  // instantly invalidates every session signed before it.
+  tokenVersion       Int      @default(0) @map("token_version")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   reportedProblems    Problem[]        @relation("ReportedBy")
   postedAnnouncements Announcement[]
   volunteerProfile    Volunteer?
   supportedProblems   ProblemSupport[]
+  passwordResets      PasswordReset[]
 
   @@map("users")
+}
+
+// One row per forgot-password attempt. `attempts` caps security-answer
+// guesses independent of the general per-IP authLimiter; `tokenHash` is only
+// populated once the answer is verified, and is the single-use credential
+// the final reset-password step must present.
+model PasswordReset {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts   Int       @default(0)
+  tokenHash  String?   @map("token_hash")
+  verifiedAt DateTime? @map("verified_at")
+  usedAt     DateTime? @map("used_at")
+  expiresAt  DateTime  @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_resets")
 }
 
 model Problem {
@@ -56,6 +84,7 @@ model Problem {
   reportedById      String   @map("reported_by") @db.Uuid
   reportedBy        User     @relation("ReportedBy", fields: [reportedById], references: [id])
   reportedByName    String   @map("reported_by_name")
+  reportedByPhone   String?  @map("reported_by_phone")
   supportCount      Int      @default(0) @map("support_count")
   assignedVolunteer String?  @map("assigned_volunteer")
   createdAt         DateTime @default(now()) @map("created_at")

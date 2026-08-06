@@ -43,9 +43,16 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async ({ name, phone, password, mandalId }) => {
+  const register = async ({ name, phone, password, mandalId, securityQuestionId, securityAnswer }) => {
     try {
-      const { token, user: apiUser } = await api.post("/auth/register", { name, phone, password, mandalId });
+      const { token, user: apiUser } = await api.post("/auth/register", {
+        name,
+        phone,
+        password,
+        mandalId,
+        securityQuestionId,
+        securityAnswer,
+      });
       setToken(token, true);
       setUser(apiUser);
       return { ok: true };
@@ -76,10 +83,30 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const forgotPassword = async (phone) => {
+  // Forgot-password-by-security-question, three steps — each returns
+  // { ok, ... } like the other auth actions so callers don't need try/catch.
+  const startForgotPassword = async (phone) => {
     try {
-      const { message } = await api.post("/auth/forgot-password", { phone });
-      return { ok: true, message };
+      const { resetId, questionId } = await api.post("/auth/forgot-password/start", { phone });
+      return { ok: true, resetId, questionId };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  };
+
+  const verifySecurityAnswer = async (resetId, answer) => {
+    try {
+      const { resetToken } = await api.post("/auth/forgot-password/verify-answer", { resetId, answer });
+      return { ok: true, resetToken };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  };
+
+  const resetPasswordWithToken = async (resetId, resetToken, password) => {
+    try {
+      await api.post("/auth/forgot-password/reset", { resetId, resetToken, password });
+      return { ok: true };
     } catch (err) {
       return { ok: false, error: err.message };
     }
@@ -107,6 +134,10 @@ export function AuthProvider({ children }) {
     await api.del(`/users/${id}`);
   };
 
+  const resetUserPassword = async (id, password) => {
+    await api.patch(`/users/${id}/password`, { password });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -118,11 +149,14 @@ export function AuthProvider({ children }) {
         register,
         sendOtp,
         verifyOtp,
-        forgotPassword,
+        startForgotPassword,
+        verifySecurityAnswer,
+        resetPasswordWithToken,
         logout,
         listUsers,
         updateUserRole,
         deleteUser,
+        resetUserPassword,
       }}
     >
       {children}
