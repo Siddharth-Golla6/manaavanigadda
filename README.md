@@ -119,8 +119,9 @@ local testing.
 
 ## Deployment
 
-- **Frontend → Vercel.** Build command `npm run build`, output `dist/`. Set
-  `VITE_API_URL` to your Render backend's URL + `/api`.
+- **Frontend → Netlify.** Build command `npm run build`, publish directory
+  `dist/` (both already set in `netlify.toml`). Set `VITE_API_URL` to your
+  Render backend's URL + `/api` in Netlify's environment variables.
 - **Backend → Render.** Build command `npm install && npx prisma generate`,
   start command `npm start`. Binds to `process.env.PORT` (Render sets this
   automatically). Set every var from `server/.env.example` in Render's
@@ -128,9 +129,9 @@ local testing.
 - **Database → Supabase Postgres**, already covered above.
 - **Images → Cloudflare R2**, already covered above.
 
-Set `CORS_ORIGIN` (backend) to your exact Vercel URL once deployed — it falls
-back to allowing any origin if unset, which is fine for local dev but not for
-production.
+Set `CORS_ORIGIN` (backend) to your exact Netlify URL once deployed — it
+falls back to allowing any origin if unset, which is fine for local dev but
+not for production.
 
 ## Security hardening (done before going live)
 

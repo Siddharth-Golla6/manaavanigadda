@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useProblems } from "../context/ProblemsContext";
+import { useLang } from "../context/LanguageContext";
 import { downloadCsv } from "../utils/exportData";
 
 import AnalyticsPanel from "./admin/AnalyticsPanel";
@@ -15,16 +16,17 @@ import GeographyPanel from "./admin/GeographyPanel";
 import ActivityLogPanel from "./admin/ActivityLogPanel";
 
 const TABS = [
-  { key: "analytics", label: "Analytics", icon: BarChart3 },
-  { key: "complaints", label: "Complaints", icon: ClipboardList },
-  { key: "announcements", label: "Announcements", icon: Megaphone },
-  { key: "users", label: "Users", icon: Users },
-  { key: "geography", label: "Mandals & Villages", icon: Map },
-  { key: "reports", label: "Reports & Export", icon: FileDown },
-  { key: "logs", label: "Activity Logs", icon: History },
+  { key: "analytics", labelKey: "admin.tab.analytics", icon: BarChart3 },
+  { key: "complaints", labelKey: "admin.tab.complaints", icon: ClipboardList },
+  { key: "announcements", labelKey: "admin.tab.announcements", icon: Megaphone },
+  { key: "users", labelKey: "admin.tab.users", icon: Users },
+  { key: "geography", labelKey: "admin.tab.geography", icon: Map },
+  { key: "reports", labelKey: "admin.tab.reports", icon: FileDown },
+  { key: "logs", labelKey: "admin.tab.logs", icon: History },
 ];
 
 export default function AdminDashboard() {
+  const { t } = useLang();
   const { user } = useAuth();
   const { problems } = useProblems();
   const [tab, setTab] = useState("analytics");
@@ -49,17 +51,17 @@ export default function AdminDashboard() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold text-brand-red">
-            <LayoutDashboard size={16} /> Admin Dashboard
+            <LayoutDashboard size={16} /> {t("admin.dashboardEyebrow")}
           </p>
           <h1 className="text-2xl font-extrabold text-neutral-900 dark:text-white sm:text-3xl">
-            Welcome, {user?.name} <span className="text-sm font-medium text-neutral-400">({user?.role})</span>
+            {t("admin.welcome", { name: user?.name })} <span className="text-sm font-medium text-neutral-400">({t(`role.${user?.role}`)})</span>
           </h1>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
-        <nav className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible" aria-label="Admin sections">
-          {TABS.map(({ key, label, icon: Icon }) => (
+        <nav className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible" aria-label={t("admin.sectionsAria")}>
+          {TABS.map(({ key, labelKey, icon: Icon }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
@@ -69,7 +71,7 @@ export default function AdminDashboard() {
                   : "text-neutral-600 hover:bg-brand-yellow/15 dark:text-neutral-300"
               }`}
             >
-              <Icon size={16} /> {label}
+              <Icon size={16} /> {t(labelKey)}
             </button>
           ))}
         </nav>
@@ -83,15 +85,15 @@ export default function AdminDashboard() {
           {tab === "logs" && <ActivityLogPanel />}
           {tab === "reports" && (
             <div>
-              <h2 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">Reports & Export</h2>
+              <h2 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">{t("admin.reports.title")}</h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <button
                   onClick={exportProblems}
                   className="glass-card p-5 text-left transition hover:-translate-y-1"
                 >
                   <FileDown size={20} className="mb-2 text-brand-red" />
-                  <p className="font-bold text-neutral-900 dark:text-white">Complaints Export (CSV)</p>
-                  <p className="text-xs text-neutral-500">{problems.length} records — opens in Excel/Sheets</p>
+                  <p className="font-bold text-neutral-900 dark:text-white">{t("admin.reports.exportComplaints")}</p>
+                  <p className="text-xs text-neutral-500">{t("admin.reports.exportDesc", { n: problems.length })}</p>
                 </button>
               </div>
             </div>

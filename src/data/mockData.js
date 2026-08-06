@@ -22,6 +22,16 @@ export const CATEGORY_OPTIONS = [
   "Street Lighting",
 ];
 
+// Must match server/src/constants.js SECURITY_QUESTION_OPTIONS exactly — ids
+// are validated server-side, display text lives in src/i18n as "secq.<id>".
+export const SECURITY_QUESTION_OPTIONS = [
+  "first-pet",
+  "childhood-nickname",
+  "favorite-teacher",
+  "first-school",
+  "childhood-place",
+];
+
 export const getProblemsByMandal = (problems, mandalId) =>
   problems.filter((p) => p.mandalId === mandalId);
 
@@ -43,7 +53,7 @@ export const getMandalHealth = (problems, mandalId) => {
   return "green";
 };
 
-export const CONTACT_EMAIL = "manaavanigadda@gmail.com";
+export const CONTACT_EMAIL = "manaavanigaddaofficial@gmail.com";
 
 // Mock aggregate — real citizen count would come from the user database.
 export const REGISTERED_CITIZENS = 12480;

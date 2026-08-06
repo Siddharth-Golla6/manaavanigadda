@@ -1,4 +1,5 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma.js";
 import { ROLE_OPTIONS } from "../constants.js";
 import { toSafeUser } from "../utils/safeUser.js";
@@ -41,6 +42,33 @@ router.patch(
 
     const updated = await prisma.user.update({ where: { id: target.id }, data: { role } });
     res.json({ user: toSafeUser(updated) });
+  })
+);
+
+// Interim stand-in for self-service "forgot password" — that flow needs live
+// SMS delivery, which isn't configured yet. Until then, a Mandal Admin or
+// Administrator can set a new password for a resident directly (e.g. after
+// verifying their identity by phone). Same Administrator-target restriction
+// as the role/delete routes above.
+router.patch(
+  "/:id/password",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: "Password should be at least 6 characters." });
+    }
+
+    const target = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!target) return res.status(404).json({ error: "User not found." });
+    if (target.role === "Administrator" && req.user.role !== "Administrator") {
+      return res.status(403).json({ error: "You don't have permission to do that." });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await prisma.user.update({ where: { id: target.id }, data: { passwordHash } });
+    res.status(204).end();
   })
 );
 

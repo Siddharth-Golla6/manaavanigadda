@@ -1,4 +1,5 @@
 import React from "react";
+import { useLang } from "../context/LanguageContext";
 
 export const STATUS_STYLES = {
   New: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
@@ -16,17 +17,19 @@ export const PRIORITY_STYLES = {
 };
 
 export function StatusBadge({ status }) {
+  const { t } = useLang();
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATUS_STYLES[status] || ""}`}>
-      {status}
+      {t(`status.${status}`)}
     </span>
   );
 }
 
 export function PriorityBadge({ priority }) {
+  const { t } = useLang();
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${PRIORITY_STYLES[priority] || ""}`}>
-      {priority}
+      {t(`priority.${priority}`)}
     </span>
   );
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route } from "react-router-dom";
 
 import { ThemeProvider } from "./context/ThemeContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ProblemsProvider } from "./context/ProblemsContext";
 import { AnnouncementsProvider } from "./context/AnnouncementsContext";
@@ -14,6 +15,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import AdminLogin from "./pages/AdminLogin";
 import Dashboard from "./pages/Dashboard";
 import MandalDashboard from "./pages/MandalDashboard";
@@ -30,15 +32,17 @@ const withLayout = (element) => <Layout>{element}</Layout>;
 function Providers({ children }) {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <ProblemsProvider>
-          <AnnouncementsProvider>
-            <ActivityLogProvider>
-              <VolunteersProvider>{children}</VolunteersProvider>
-            </ActivityLogProvider>
-          </AnnouncementsProvider>
-        </ProblemsProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <ProblemsProvider>
+            <AnnouncementsProvider>
+              <ActivityLogProvider>
+                <VolunteersProvider>{children}</VolunteersProvider>
+              </ActivityLogProvider>
+            </AnnouncementsProvider>
+          </ProblemsProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }
@@ -50,6 +54,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route path="/dashboard" element={withLayout(<Dashboard />)} />

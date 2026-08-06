@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "re
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { LocateFixed } from "lucide-react";
+import { useLang } from "../context/LanguageContext";
 
 // Leaflet's default marker icon references image files by relative URL, which
 // breaks under bundlers (Vite included) since the assets get hashed/moved.
@@ -53,6 +54,7 @@ function FlyToValue({ value }) {
 }
 
 export default function MapPicker({ value, onChange, readOnly = false }) {
+  const { t } = useLang();
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState("");
 
@@ -61,7 +63,7 @@ export default function MapPicker({ value, onChange, readOnly = false }) {
   const useCurrentLocation = () => {
     setError("");
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported on this device/browser.");
+      setError(t("map.geoUnsupported"));
       return;
     }
     setLocating(true);
@@ -76,8 +78,8 @@ export default function MapPicker({ value, onChange, readOnly = false }) {
       (err) => {
         setError(
           err.code === err.PERMISSION_DENIED
-            ? "Location access was denied. You can still tap the map to set a location."
-            : err.message || "Could not fetch your location."
+            ? t("map.permissionDenied")
+            : err.message || t("map.couldNotFetch")
         );
         setLocating(false);
       },
@@ -96,12 +98,12 @@ export default function MapPicker({ value, onChange, readOnly = false }) {
             className="inline-flex items-center gap-2 rounded-lg bg-brand-red px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-red-dark disabled:opacity-60"
           >
             <LocateFixed size={16} className={locating ? "animate-spin" : ""} />
-            {locating ? "Locating…" : "Locate Me"}
+            {locating ? t("map.locating") : t("map.locateMe")}
           </button>
         )}
         {value && (
           <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            Lat {value.lat.toFixed(6)}, Lng {value.lng.toFixed(6)}
+            {t("map.latLng", { lat: value.lat.toFixed(6), lng: value.lng.toFixed(6) })}
           </p>
         )}
       </div>
@@ -138,7 +140,7 @@ export default function MapPicker({ value, onChange, readOnly = false }) {
                     }
               }
             >
-              <Popup>You are here.</Popup>
+              <Popup>{t("map.youAreHere")}</Popup>
             </Marker>
           )}
         </MapContainer>
@@ -146,7 +148,7 @@ export default function MapPicker({ value, onChange, readOnly = false }) {
 
       {!readOnly && !value && (
         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-          Tap "Locate Me" or click on the map to drop a pin.
+          {t("map.tapToPick")}
         </p>
       )}
     </div>

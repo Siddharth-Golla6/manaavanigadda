@@ -22,3 +22,13 @@ export const CATEGORY_OPTIONS = [
   "Education",
   "Street Lighting",
 ];
+
+// Stable ids only — the question text shown to users is a frontend i18n
+// concern (src/i18n/{en,te}.js, "secq.<id>"), same pattern as CATEGORY_OPTIONS.
+export const SECURITY_QUESTION_OPTIONS = [
+  "first-pet",
+  "childhood-nickname",
+  "favorite-teacher",
+  "first-school",
+  "childhood-place",
+];

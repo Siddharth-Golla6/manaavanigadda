@@ -1,24 +1,25 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, Sun, Moon, LogOut, ShieldCheck, User } from "lucide-react";
+import { Menu, X, Sun, Moon, LogOut, ShieldCheck, User, Languages } from "lucide-react";
 import Logo from "./Logo";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-
-const LINKS = [
-  { to: "/dashboard", label: "Home" },
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/report", label: "Report Problem" },
-  { to: "/solved", label: "Solved Problems" },
-  { to: "/announcements", label: "Announcements" },
-  { to: "/about", label: "About Us" },
-];
+import { useLang } from "../context/LanguageContext";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { user, isAdmin, logout } = useAuth();
   const { dark, toggleTheme } = useTheme();
+  const { lang, toggleLang, t } = useLang();
   const navigate = useNavigate();
+
+  const LINKS = [
+    { to: "/dashboard", label: t("nav.home") },
+    { to: "/report", label: t("nav.report") },
+    { to: "/solved", label: t("nav.solved") },
+    { to: "/announcements", label: t("nav.announcements") },
+    { to: "/about", label: t("nav.about") },
+  ];
 
   const handleLogout = () => {
     logout();
@@ -40,7 +41,7 @@ export default function Navbar() {
           <Logo size={38} />
         </NavLink>
 
-        <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-0.5 lg:flex" aria-label={t("nav.primary")}>
           {LINKS.filter((l, i) => LINKS.findIndex((x) => x.label === l.label) === i).map((link) => (
             <NavLink key={link.label} to={link.to} className={linkClass}>
               {link.label}
@@ -48,15 +49,24 @@ export default function Navbar() {
           ))}
           {isAdmin && (
             <NavLink to="/admin" className={linkClass}>
-              Admin Dashboard
+              {t("nav.adminDashboard")}
             </NavLink>
           )}
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
           <button
+            onClick={toggleLang}
+            aria-label={t("nav.toggleLang")}
+            title={t("nav.toggleLang")}
+            className="flex items-center gap-1 rounded-full px-2 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+          >
+            <Languages size={16} />
+            {lang === "en" ? "తె" : "EN"}
+          </button>
+          <button
             onClick={toggleTheme}
-            aria-label="Toggle dark mode"
+            aria-label={t("nav.toggleDark")}
             className="rounded-full p-2 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
           >
             {dark ? <Sun size={18} /> : <Moon size={18} />}
@@ -71,7 +81,7 @@ export default function Navbar() {
                 onClick={handleLogout}
                 className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
               >
-                <LogOut size={14} /> Logout
+                <LogOut size={14} /> {t("nav.logout")}
               </button>
             </div>
           ) : (
@@ -79,7 +89,7 @@ export default function Navbar() {
               to="/login"
               className="rounded-lg bg-brand-red px-4 py-2 text-sm font-semibold text-white hover:bg-brand-red-dark"
             >
-              Login
+              {t("nav.login")}
             </NavLink>
           )}
         </div>
@@ -87,7 +97,7 @@ export default function Navbar() {
         <button
           className="rounded-lg p-2 text-neutral-700 dark:text-neutral-200 lg:hidden"
           onClick={() => setOpen((o) => !o)}
-          aria-label="Toggle menu"
+          aria-label={t("nav.mobileMenu")}
         >
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -95,7 +105,7 @@ export default function Navbar() {
 
       {open && (
         <div className="border-t border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-950 lg:hidden">
-          <nav className="flex flex-col gap-1" aria-label="Mobile">
+          <nav className="flex flex-col gap-1" aria-label={t("nav.mobile")}>
             {LINKS.filter((l, i) => LINKS.findIndex((x) => x.label === l.label) === i).map((link) => (
               <NavLink key={link.label} to={link.to} className={linkClass} onClick={() => setOpen(false)}>
                 {link.label}
@@ -103,22 +113,30 @@ export default function Navbar() {
             ))}
             {isAdmin && (
               <NavLink to="/admin" className={linkClass} onClick={() => setOpen(false)}>
-                Admin Dashboard
+                {t("nav.adminDashboard")}
               </NavLink>
             )}
             <div className="mt-2 flex items-center justify-between border-t border-neutral-200 pt-3 dark:border-neutral-800">
-              <button
-                onClick={toggleTheme}
-                className="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200"
-              >
-                {dark ? <Sun size={16} /> : <Moon size={16} />} {dark ? "Light" : "Dark"} mode
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-200"
+                >
+                  {dark ? <Sun size={16} /> : <Moon size={16} />} {dark ? t("nav.lightMode") : t("nav.darkMode")}
+                </button>
+                <button
+                  onClick={toggleLang}
+                  className="flex items-center gap-1 text-sm font-semibold text-neutral-700 dark:text-neutral-200"
+                >
+                  <Languages size={16} /> {lang === "en" ? "తె" : "EN"}
+                </button>
+              </div>
               {user ? (
                 <button
                   onClick={handleLogout}
                   className="inline-flex items-center gap-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 dark:border-neutral-700 dark:text-neutral-200"
                 >
-                  <LogOut size={14} /> Logout
+                  <LogOut size={14} /> {t("nav.logout")}
                 </button>
               ) : (
                 <NavLink
@@ -126,7 +144,7 @@ export default function Navbar() {
                   onClick={() => setOpen(false)}
                   className="rounded-lg bg-brand-red px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Login
+                  {t("nav.login")}
                 </NavLink>
               )}
             </div>

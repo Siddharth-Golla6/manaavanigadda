@@ -4,9 +4,16 @@ import { Eye, EyeOff, MessageSquareText } from "lucide-react";
 import AuthShell from "../components/AuthShell";
 import { Label, Input } from "../components/FormField";
 import { useAuth } from "../context/AuthContext";
+import { useLang } from "../context/LanguageContext";
+
+// OTP delivery isn't configured yet (MSG91 is still in mock mode) — hide the
+// OTP login tab until that's set up. Flip this back on when it's ready; the
+// OTP form/logic below is untouched.
+const OTP_LOGIN_ENABLED = false;
 
 export default function Login() {
-  const { login, forgotPassword, sendOtp, verifyOtp } = useAuth();
+  const { t } = useLang();
+  const { login, sendOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/dashboard";
@@ -19,7 +26,6 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
-  const [forgotMsg, setForgotMsg] = useState("");
 
   // OTP mode
   const [otpPhone, setOtpPhone] = useState("");
@@ -36,13 +42,6 @@ export default function Login() {
     const result = await login(phone.trim(), password, rememberMe);
     if (!result.ok) return setError(result.error);
     navigate(from, { replace: true });
-  };
-
-  const handleForgot = async () => {
-    setError("");
-    const result = await forgotPassword(phone.trim());
-    if (!result.ok) return setError(result.error);
-    setForgotMsg(result.message);
   };
 
   const handleSendOtp = async (e) => {
@@ -69,46 +68,48 @@ export default function Login() {
 
   return (
     <AuthShell
-      title="Resident Login"
-      subtitle="Log in to report issues and get involved."
+      title={t("login.title")}
+      subtitle={t("login.subtitle")}
       footer={
         <>
-          <span className="text-neutral-500">New here? </span>
+          <span className="text-neutral-500">{t("login.newHere")} </span>
           <Link to="/register" className="font-semibold text-brand-red hover:underline">
-            Create an account
+            {t("login.createAccount")}
           </Link>
           <span className="mx-2 text-neutral-300">•</span>
           <Link to="/admin-login" className="font-semibold text-neutral-500 hover:underline">
-            Admin Login
+            {t("login.adminLoginLink")}
           </Link>
         </>
       }
     >
-      <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
-        <button
-          type="button"
-          onClick={() => setMode("password")}
-          className={`rounded-md py-2 text-sm font-semibold transition ${
-            mode === "password" ? "bg-white text-neutral-900 shadow dark:bg-neutral-700 dark:text-white" : "text-neutral-500"
-          }`}
-        >
-          Password
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("otp")}
-          className={`rounded-md py-2 text-sm font-semibold transition ${
-            mode === "otp" ? "bg-white text-neutral-900 shadow dark:bg-neutral-700 dark:text-white" : "text-neutral-500"
-          }`}
-        >
-          Log in with OTP
-        </button>
-      </div>
+      {OTP_LOGIN_ENABLED && (
+        <div className="mb-5 grid grid-cols-2 gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
+          <button
+            type="button"
+            onClick={() => setMode("password")}
+            className={`rounded-md py-2 text-sm font-semibold transition ${
+              mode === "password" ? "bg-white text-neutral-900 shadow dark:bg-neutral-700 dark:text-white" : "text-neutral-500"
+            }`}
+          >
+            {t("login.tab.password")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("otp")}
+            className={`rounded-md py-2 text-sm font-semibold transition ${
+              mode === "otp" ? "bg-white text-neutral-900 shadow dark:bg-neutral-700 dark:text-white" : "text-neutral-500"
+            }`}
+          >
+            {t("login.tab.otp")}
+          </button>
+        </div>
+      )}
 
-      {mode === "password" ? (
+      {!OTP_LOGIN_ENABLED || mode === "password" ? (
         <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
           <div>
-            <Label htmlFor="phone" required>Phone Number</Label>
+            <Label htmlFor="phone" required>{t("login.phone")}</Label>
             <Input
               id="phone"
               type="tel"
@@ -122,7 +123,7 @@ export default function Login() {
           </div>
 
           <div>
-            <Label htmlFor="password" required>Password</Label>
+            <Label htmlFor="password" required>{t("login.password")}</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -138,7 +139,7 @@ export default function Login() {
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -153,27 +154,26 @@ export default function Login() {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 rounded border-neutral-300 text-brand-red focus:ring-brand-red"
               />
-              Remember Me
+              {t("login.rememberMe")}
             </label>
-            <button type="button" onClick={handleForgot} className="font-semibold text-brand-red hover:underline">
-              Forgot Password?
-            </button>
+            <Link to="/forgot-password" className="font-semibold text-brand-red hover:underline">
+              {t("login.forgot")}
+            </Link>
           </div>
 
           {error && <p className="text-sm font-medium text-brand-red" role="alert">{error}</p>}
-          {forgotMsg && <p className="text-sm font-medium text-emerald-600">{forgotMsg}</p>}
 
           <button
             type="submit"
             className="w-full rounded-lg bg-brand-red py-3 text-sm font-bold text-white shadow-md transition hover:bg-brand-red-dark"
           >
-            Log In
+            {t("login.submit")}
           </button>
         </form>
       ) : (
         <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4" data-testid="otp-login-form">
           <div>
-            <Label htmlFor="otpPhone" required>Phone Number</Label>
+            <Label htmlFor="otpPhone" required>{t("login.phone")}</Label>
             <Input
               id="otpPhone"
               type="tel"
@@ -192,7 +192,7 @@ export default function Login() {
 
           {otpSent && (
             <div>
-              <Label htmlFor="otpCode" required>Verification Code</Label>
+              <Label htmlFor="otpCode" required>{t("login.otpCode")}</Label>
               <Input
                 id="otpCode"
                 type="text"
@@ -209,7 +209,7 @@ export default function Login() {
                 disabled={otpSending}
                 className="mt-2 text-xs font-semibold text-brand-red hover:underline disabled:opacity-50"
               >
-                {otpSending ? "Resending…" : "Resend code"}
+                {otpSending ? t("login.resending") : t("login.resend")}
               </button>
             </div>
           )}
@@ -223,7 +223,7 @@ export default function Login() {
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-red py-3 text-sm font-bold text-white shadow-md transition hover:bg-brand-red-dark disabled:opacity-60"
           >
             <MessageSquareText size={16} />
-            {otpSent ? (otpVerifying ? "Verifying…" : "Verify & Log In") : otpSending ? "Sending…" : "Send Code"}
+            {otpSent ? (otpVerifying ? t("login.verifying") : t("login.verifyAndLogin")) : otpSending ? t("login.sending") : t("login.sendCode")}
           </button>
         </form>
       )}

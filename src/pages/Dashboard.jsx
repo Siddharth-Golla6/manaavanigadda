@@ -12,11 +12,13 @@ import { CardGridSkeleton } from "../components/Skeleton";
 import { MANDALS } from "../data/geography";
 import { CATEGORY_OPTIONS } from "../data/mockData";
 import { useProblems } from "../context/ProblemsContext";
+import { useLang } from "../context/LanguageContext";
 import useDelayedReady from "../hooks/useDelayedReady";
 
 const PIE_COLORS = ["#D32F2F", "#FFC107", "#059669", "#0891B2", "#7C3AED", "#EA580C", "#4B5563", "#DB2777"];
 
 export default function Dashboard() {
+  const { t } = useLang();
   const ready = useDelayedReady(500);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const { problems } = useProblems();
@@ -26,10 +28,10 @@ export default function Dashboard() {
   const solvedByDepartment = useMemo(
     () =>
       CATEGORY_OPTIONS.map((c) => ({
-        name: c,
+        name: t(`cat.${c}`),
         value: problems.filter((p) => p.category === c && p.status === "Completed").length,
       })).filter((d) => d.value > 0),
-    [problems]
+    [problems, t]
   );
 
   const departmentWorkload = useMemo(
@@ -37,21 +39,21 @@ export default function Dashboard() {
       CATEGORY_OPTIONS.map((c) => {
         const inCategory = problems.filter((p) => p.category === c);
         return {
-          name: c,
+          name: t(`cat.${c}`),
           total: inCategory.length,
           resolved: inCategory.filter((p) => p.status === "Completed").length,
         };
       }).filter((d) => d.total > 0),
-    [problems]
+    [problems, t]
   );
 
   const byCategory = useMemo(
     () =>
       CATEGORY_OPTIONS.map((c) => ({
-        name: c,
+        name: t(`cat.${c}`),
         value: problems.filter((p) => p.category === c).length,
       })).filter((c) => c.value > 0),
-    [problems]
+    [problems, t]
   );
 
   return (
@@ -59,20 +61,20 @@ export default function Dashboard() {
       <section className="border-b border-neutral-200 bg-gradient-to-br from-brand-yellow/15 via-white to-brand-red/5 px-4 py-10 dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-950 dark:to-neutral-900 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-brand-red">
-            Avanigadda Constituency
+            {t("dashboard.constituency")}
           </p>
           <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-white sm:text-4xl">
-            Community Dashboard
+            {t("dashboard.title")}
           </h1>
           <p className="mt-2 max-w-2xl text-neutral-600 dark:text-neutral-400">
-            Live overview of civic issues and volunteers across all 6 Mandals.
+            {t("dashboard.subtitle")}
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Mandals at a Glance</h2>
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">{t("dashboard.mandalsAtGlance")}</h2>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {MANDALS.map((m) => (
@@ -84,18 +86,18 @@ export default function Dashboard() {
       <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6">
         <div className="mb-5 flex items-center gap-2">
           <PieChartIcon size={20} className="text-brand-red" />
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Complaints Analytics</h2>
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">{t("dashboard.analytics")}</h2>
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <GlassCard>
-            <h3 className="mb-1 text-sm font-bold text-neutral-800 dark:text-neutral-200">Complaints by Category</h3>
+            <h3 className="mb-1 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("dashboard.byCategory")}</h3>
             <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
-              All reported complaints, grouped by category.
+              {t("dashboard.byCategoryDesc")}
             </p>
             {byCategory.length === 0 ? (
               <div className="flex h-64 items-center justify-center text-sm text-neutral-500">
-                No complaints reported yet.
+                {t("dashboard.noComplaintsYet")}
               </div>
             ) : (
               <div className="h-64">
@@ -115,13 +117,13 @@ export default function Dashboard() {
           </GlassCard>
 
           <GlassCard>
-            <h3 className="mb-1 text-sm font-bold text-neutral-800 dark:text-neutral-200">Solved Problems by Department</h3>
+            <h3 className="mb-1 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("dashboard.solvedByDept")}</h3>
             <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
-              Share of completed complaints handled by each department.
+              {t("dashboard.solvedByDeptDesc")}
             </p>
             {solvedByDepartment.length === 0 ? (
               <div className="flex h-64 items-center justify-center text-sm text-neutral-500">
-                No solved problems yet.
+                {t("dashboard.noSolvedYet")}
               </div>
             ) : (
               <div className="h-64">
@@ -141,13 +143,13 @@ export default function Dashboard() {
           </GlassCard>
 
           <GlassCard>
-            <h3 className="mb-1 text-sm font-bold text-neutral-800 dark:text-neutral-200">Department Resolution Progress</h3>
+            <h3 className="mb-1 text-sm font-bold text-neutral-800 dark:text-neutral-200">{t("dashboard.deptProgress")}</h3>
             <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
-              Total complaints reported vs. resolved, by department.
+              {t("dashboard.deptProgressDesc")}
             </p>
             {departmentWorkload.length === 0 ? (
               <div className="flex h-64 items-center justify-center text-sm text-neutral-500">
-                No complaints reported yet.
+                {t("dashboard.noComplaintsYet")}
               </div>
             ) : (
               <div className="h-64">
@@ -158,8 +160,8 @@ export default function Dashboard() {
                     <YAxis type="category" dataKey="name" fontSize={10} width={110} />
                     <Tooltip />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="total" name="Reported" fill="#FFC107" radius={[0, 4, 4, 0]} />
-                    <Bar dataKey="resolved" name="Resolved" fill="#059669" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="total" name={t("dashboard.chart.reported")} fill="#FFC107" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="resolved" name={t("dashboard.chart.resolved")} fill="#059669" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -170,9 +172,9 @@ export default function Dashboard() {
 
       <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Community Problems</h2>
+          <h2 className="text-xl font-bold text-neutral-900 dark:text-white">{t("dashboard.communityProblems")}</h2>
           <Link to="/report" className="text-sm font-semibold text-brand-red hover:underline">
-            + Report a Problem
+            {t("dashboard.reportAProblem")}
           </Link>
         </div>
 
@@ -183,7 +185,7 @@ export default function Dashboard() {
         {!ready ? (
           <CardGridSkeleton count={6} />
         ) : filteredProblems.length === 0 ? (
-          <GlassCard className="py-12 text-center text-neutral-500">No problems match these filters.</GlassCard>
+          <GlassCard className="py-12 text-center text-neutral-500">{t("dashboard.noProblemsMatch")}</GlassCard>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filteredProblems.map((problem) => (

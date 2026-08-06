@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, KeyRound } from "lucide-react";
 import GlassCard from "../../components/GlassCard";
 import { Select } from "../../components/FormField";
 import { useAuth } from "../../context/AuthContext";
 import { useActivityLog } from "../../context/ActivityLogContext";
+import { useLang } from "../../context/LanguageContext";
 import { getMandalById } from "../../data/geography";
 
 const ALL_ROLES = ["Resident", "Volunteer", "Mandal Admin", "Administrator"];
 
 export default function UsersPanel() {
-  const { listUsers, updateUserRole, deleteUser, user: current } = useAuth();
+  const { t } = useLang();
+  const { listUsers, updateUserRole, deleteUser, resetUserPassword, user: current } = useAuth();
   const { log } = useActivityLog();
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
@@ -44,7 +46,7 @@ export default function UsersPanel() {
   };
 
   const handleDelete = async (u) => {
-    if (!window.confirm(`Remove user "${u.name}"?`)) return;
+    if (!window.confirm(t("admin.users.confirmDelete", { name: u.name }))) return;
     setError("");
     try {
       await deleteUser(u.id);
@@ -55,19 +57,32 @@ export default function UsersPanel() {
     }
   };
 
+  const handleResetPassword = async (u) => {
+    const password = window.prompt(t("admin.users.resetPasswordPrompt", { name: u.name }));
+    if (!password) return;
+    setError("");
+    try {
+      await resetUserPassword(u.id, password);
+      await log(current?.name || "Admin", `Reset ${u.name}'s password`);
+      window.alert(t("admin.users.resetPasswordSuccess", { name: u.name }));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">User Management</h2>
+      <h2 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">{t("admin.users.title")}</h2>
       {error && <p className="mb-3 text-sm font-medium text-brand-red">{error}</p>}
       <GlassCard className="overflow-x-auto !p-0">
         <table className="w-full min-w-[700px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-xs uppercase text-neutral-400 dark:border-neutral-800">
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3">Mandal</th>
-              <th className="px-4 py-3">Role</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3">{t("admin.users.col.name")}</th>
+              <th className="px-4 py-3">{t("admin.users.col.phone")}</th>
+              <th className="px-4 py-3">{t("admin.users.col.mandal")}</th>
+              <th className="px-4 py-3">{t("admin.users.col.role")}</th>
+              <th className="px-4 py-3 text-right">{t("admin.users.col.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -75,6 +90,7 @@ export default function UsersPanel() {
               const canEditRole = isSelfAdministrator || u.role !== "Administrator";
               const rowOptions = canEditRole ? assignableRoles : [...assignableRoles, u.role];
               const canDelete = u.id !== current?.id && (isSelfAdministrator || u.role !== "Administrator");
+              const canResetPassword = isSelfAdministrator || u.role !== "Administrator";
               return (
                 <tr key={u.id}>
                   <td className="px-4 py-3 font-semibold text-neutral-800 dark:text-neutral-100">{u.name}</td>
@@ -88,19 +104,29 @@ export default function UsersPanel() {
                       className="!py-1.5 text-xs"
                     >
                       {rowOptions.map((r) => (
-                        <option key={r} value={r}>{r}</option>
+                        <option key={r} value={r}>{t(`role.${r}`)}</option>
                       ))}
                     </Select>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(u)}
-                      disabled={!canDelete}
-                      className="rounded-lg p-1.5 text-brand-red hover:bg-red-50 disabled:opacity-30 dark:hover:bg-red-500/10"
-                      title="Remove user"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => handleResetPassword(u)}
+                        disabled={!canResetPassword}
+                        className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 disabled:opacity-30 dark:hover:bg-neutral-800"
+                        title={t("admin.users.resetPassword")}
+                      >
+                        <KeyRound size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u)}
+                        disabled={!canDelete}
+                        className="rounded-lg p-1.5 text-brand-red hover:bg-red-50 disabled:opacity-30 dark:hover:bg-red-500/10"
+                        title={t("admin.users.remove")}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

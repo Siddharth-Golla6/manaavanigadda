@@ -4,8 +4,10 @@ import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import AuthShell from "../components/AuthShell";
 import { Label, Input } from "../components/FormField";
 import { useAuth } from "../context/AuthContext";
+import { useLang } from "../context/LanguageContext";
 
 export default function AdminLogin() {
+  const { t } = useLang();
   const { adminLogin } = useAuth();
   const navigate = useNavigate();
 
@@ -26,19 +28,19 @@ export default function AdminLogin() {
     <AuthShell
       title={
         <span className="flex items-center justify-center gap-2">
-          <ShieldCheck size={22} className="text-brand-red" /> Admin Login
+          <ShieldCheck size={22} className="text-brand-red" /> {t("adminLogin.title")}
         </span>
       }
-      subtitle="Restricted to Mandal Admins and Administrators only."
+      subtitle={t("adminLogin.subtitle")}
       footer={
         <Link to="/login" className="font-semibold text-neutral-500 hover:underline">
-          Resident login instead
+          {t("adminLogin.residentLink")}
         </Link>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label htmlFor="aphone" required>Admin Phone Number</Label>
+          <Label htmlFor="aphone" required>{t("adminLogin.phone")}</Label>
           <Input
             id="aphone"
             type="tel"
@@ -50,7 +52,7 @@ export default function AdminLogin() {
         </div>
 
         <div>
-          <Label htmlFor="apassword" required>Password</Label>
+          <Label htmlFor="apassword" required>{t("login.password")}</Label>
           <div className="relative">
             <Input
               id="apassword"
@@ -64,7 +66,7 @@ export default function AdminLogin() {
               type="button"
               onClick={() => setShowPassword((s) => !s)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -77,7 +79,7 @@ export default function AdminLogin() {
           type="submit"
           className="w-full rounded-lg bg-neutral-900 py-3 text-sm font-bold text-white shadow-md transition hover:bg-neutral-800 dark:bg-brand-red dark:hover:bg-brand-red-dark"
         >
-          Log In to Admin Panel
+          {t("adminLogin.submit")}
         </button>
       </form>
     </AuthShell>

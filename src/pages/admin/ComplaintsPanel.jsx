@@ -8,9 +8,11 @@ import MapPicker from "../../components/MapPicker";
 import { useProblems } from "../../context/ProblemsContext";
 import { useActivityLog } from "../../context/ActivityLogContext";
 import { useAuth } from "../../context/AuthContext";
+import { useLang } from "../../context/LanguageContext";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../../data/mockData";
 
 export default function ComplaintsPanel() {
+  const { t } = useLang();
   const { problems, updateProblem, deleteProblem } = useProblems();
   const { log } = useActivityLog();
   const { user } = useAuth();
@@ -41,7 +43,7 @@ export default function ComplaintsPanel() {
   };
 
   const handleDelete = async (p) => {
-    if (!window.confirm(`Delete complaint "${p.title}"? This cannot be undone.`)) return;
+    if (!window.confirm(t("admin.complaints.confirmDeleteNamed", { title: p.title }))) return;
     setError("");
     try {
       await deleteProblem(p.id);
@@ -53,22 +55,23 @@ export default function ComplaintsPanel() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">Complaint Verification & Management</h2>
+      <h2 className="mb-4 text-lg font-bold text-neutral-900 dark:text-white">{t("admin.complaints.title")}</h2>
       <div className="mb-4">
         <ProblemFilters filters={filters} onChange={setFilters} />
       </div>
       {error && <p className="mb-3 text-sm font-medium text-brand-red">{error}</p>}
 
       <GlassCard className="overflow-x-auto !p-0">
-        <table className="w-full min-w-[900px] text-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-xs uppercase text-neutral-400 dark:border-neutral-800">
-              <th className="px-4 py-3">Complaint</th>
-              <th className="px-4 py-3">Location</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Priority</th>
-              <th className="px-4 py-3">Support</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3">{t("admin.complaints.col.complaint")}</th>
+              <th className="px-4 py-3">{t("admin.complaints.col.reporter")}</th>
+              <th className="px-4 py-3">{t("admin.complaints.col.location")}</th>
+              <th className="px-4 py-3">{t("admin.complaints.col.status")}</th>
+              <th className="px-4 py-3">{t("admin.complaints.col.priority")}</th>
+              <th className="px-4 py-3">{t("admin.complaints.col.support")}</th>
+              <th className="px-4 py-3 text-right">{t("admin.complaints.col.actions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -76,35 +79,39 @@ export default function ComplaintsPanel() {
               <tr key={p.id}>
                 <td className="max-w-[220px] px-4 py-3">
                   <p className="truncate font-semibold text-neutral-800 dark:text-neutral-100">{p.title}</p>
-                  <p className="text-xs text-neutral-400">#{p.id} · {p.category}</p>
+                  <p className="text-xs text-neutral-400">#{p.id} · {t(`cat.${p.category}`)}</p>
+                </td>
+                <td className="px-4 py-3 text-neutral-500">
+                  {p.reportedByName || "—"}
+                  {p.reportedByPhone && <><br />{p.reportedByPhone}</>}
                 </td>
                 <td className="px-4 py-3 text-neutral-500">{p.village}, <br />{p.mandalName}</td>
                 <td className="px-4 py-3">
                   <Select value={p.status} onChange={(e) => handleStatus(p, e.target.value)} className="!py-1.5 text-xs">
                     {STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                      <option key={s} value={s}>{t(`status.${s}`)}</option>
                     ))}
                   </Select>
                 </td>
                 <td className="px-4 py-3">
                   <Select value={p.priority} onChange={(e) => handlePriority(p, e.target.value)} className="!py-1.5 text-xs">
                     {PRIORITY_OPTIONS.map((pr) => (
-                      <option key={pr} value={pr}>{pr}</option>
+                      <option key={pr} value={pr}>{t(`priority.${pr}`)}</option>
                     ))}
                   </Select>
                 </td>
                 <td className="px-4 py-3 text-neutral-500">{p.supportCount}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
-                    <Link to={`/problem/${p.id}`} className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800" title="View">
+                    <Link to={`/problem/${p.id}`} className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800" title={t("admin.complaints.viewTooltip")}>
                       <Eye size={16} />
                     </Link>
                     {p.lat && (
-                      <button onClick={() => setMapFor(mapFor === p.id ? null : p.id)} className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800" title="GPS location">
+                      <button onClick={() => setMapFor(mapFor === p.id ? null : p.id)} className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800" title={t("admin.complaints.gpsTooltip")}>
                         <MapPinned size={16} />
                       </button>
                     )}
-                    <button onClick={() => handleDelete(p)} className="rounded-lg p-1.5 text-brand-red hover:bg-red-50 dark:hover:bg-red-500/10" title="Delete">
+                    <button onClick={() => handleDelete(p)} className="rounded-lg p-1.5 text-brand-red hover:bg-red-50 dark:hover:bg-red-500/10" title={t("admin.complaints.deleteTooltip")}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -124,7 +131,7 @@ export default function ComplaintsPanel() {
         )}
 
         {filtered.length === 0 && (
-          <p className="p-8 text-center text-neutral-400">No complaints match these filters.</p>
+          <p className="p-8 text-center text-neutral-400">{t("admin.complaints.noneFiltered")}</p>
         )}
       </GlassCard>
     </div>
