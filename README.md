@@ -51,16 +51,14 @@ npm run dev              # starts on :5174
 
 ## Demo accounts
 
-Created by `npm run seed`, all with password `password123`:
-
-| Phone        | Role         |
-|--------------|--------------|
-| 9876500001   | Resident     |
-| 9876500002   | Volunteer    |
-| 9876500004   | Mandal Admin |
-| 9876500000   | Administrator |
-
+`npm run seed` creates one demo account per role (Resident, Volunteer,
+Mandal Admin, Administrator) and prints their phone numbers and a
+freshly-generated random password to your terminal when it finishes —
+nothing is hardcoded, so there's no fixed credential sitting in this repo.
 Use `/admin-login` for the two admin accounts, `/login` for the rest.
+
+**`npm run seed` wipes all existing data first** — only run it against a
+database you're OK clearing, never against a live/production one.
 
 ## Database (Supabase Postgres via Prisma)
 
@@ -135,9 +133,9 @@ not for production.
 
 ## Security hardening (done before going live)
 
-- No demo credentials are shown anywhere in the UI (removed from Login and
-  Admin Login pages — they used to display seeded phone numbers and the
-  shared `password123`, which is a real risk once this is public).
+- No demo credentials are shown anywhere in the UI, README, or seed script —
+  `npm run seed` generates a random password per run (see "Demo accounts"
+  above) instead of a fixed, publicly-known one.
 - OTP codes are never returned by the API in any mode — check server console
   logs for local testing.
 - `server/src/utils/sanitize.js` strips `$`-prefixed/dotted keys from
