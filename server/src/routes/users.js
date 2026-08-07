@@ -2,18 +2,28 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/prisma.js";
 import { ROLE_OPTIONS } from "../constants.js";
+import { MANDALS } from "../data/geography.js";
 import { toSafeUser } from "../utils/safeUser.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { requireAuth, requireAdmin, requireAdministrator } from "../middleware/auth.js";
 
 const router = Router();
+const MANDAL_IDS = MANDALS.map((m) => m.id);
 
+// A Mandal Admin can see and manage residents/volunteers, but Administrator
+// accounts are the top permission level and stay invisible to anyone below
+// that — not just protected from edits (see the role/delete restrictions
+// further down), but omitted from the list entirely.
 router.get(
   "/",
   requireAuth,
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+    const isSelfAdministrator = req.user.role === "Administrator";
+    const users = await prisma.user.findMany({
+      where: isSelfAdministrator ? {} : { role: { not: "Administrator" } },
+      orderBy: { createdAt: "desc" },
+    });
     res.json({ users: users.map(toSafeUser) });
   })
 );
@@ -22,14 +32,22 @@ router.get(
 // an existing Administrator — a Mandal Admin (also allowed past requireAdmin
 // above) must not be able to promote anyone to, or demote anyone from, the
 // top permission level.
+//
+// Assigning the Volunteer role also assigns a Mandal (required — a volunteer
+// scoped to nothing isn't useful) and keeps the `volunteers` leaderboard
+// table in sync: a linked row is created/moved when someone becomes a
+// Volunteer, and removed if they stop being one.
 router.patch(
   "/:id",
   requireAuth,
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { role } = req.body;
+    const { role, mandalId } = req.body;
     if (!role || !ROLE_OPTIONS.includes(role)) {
       return res.status(400).json({ error: "Invalid role." });
+    }
+    if (role === "Volunteer" && !MANDAL_IDS.includes(mandalId)) {
+      return res.status(400).json({ error: "Choose a Mandal for this volunteer." });
     }
 
     const target = await prisma.user.findUnique({ where: { id: req.params.id } });
@@ -40,20 +58,43 @@ router.patch(
       return res.status(403).json({ error: "You don't have permission to do that." });
     }
 
-    const updated = await prisma.user.update({ where: { id: target.id }, data: { role } });
+    const wasVolunteer = target.role === "Volunteer";
+    const isNowVolunteer = role === "Volunteer";
+
+    const updated = await prisma.user.update({
+      where: { id: target.id },
+      data: { role, ...(isNowVolunteer ? { mandalId } : {}) },
+    });
+
+    if (isNowVolunteer) {
+      // Upsert-by-userId: keep resolved/points if they already had a
+      // volunteer record (e.g. just moving Mandals), otherwise start fresh.
+      const existing = await prisma.volunteer.findUnique({ where: { userId: target.id } });
+      if (existing) {
+        await prisma.volunteer.update({
+          where: { userId: target.id },
+          data: { name: updated.name, mandalId },
+        });
+      } else {
+        await prisma.volunteer.create({
+          data: { name: updated.name, mandalId, userId: target.id },
+        });
+      }
+    } else if (wasVolunteer) {
+      await prisma.volunteer.deleteMany({ where: { userId: target.id } });
+    }
+
     res.json({ user: toSafeUser(updated) });
   })
 );
 
-// Interim stand-in for self-service "forgot password" — that flow needs live
-// SMS delivery, which isn't configured yet. Until then, a Mandal Admin or
-// Administrator can set a new password for a resident directly (e.g. after
-// verifying their identity by phone). Same Administrator-target restriction
-// as the role/delete routes above.
+// Administrator-only — a Mandal Admin can no longer reset another user's
+// password. Resetting a password is full account takeover for that user, and
+// that's more power than "manage residents in my Mandal" should include.
 router.patch(
   "/:id/password",
   requireAuth,
-  requireAdmin,
+  requireAdministrator,
   asyncHandler(async (req, res) => {
     const { password } = req.body;
     if (!password || password.length < 6) {
@@ -62,9 +103,6 @@ router.patch(
 
     const target = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!target) return res.status(404).json({ error: "User not found." });
-    if (target.role === "Administrator" && req.user.role !== "Administrator") {
-      return res.status(403).json({ error: "You don't have permission to do that." });
-    }
 
     const passwordHash = await bcrypt.hash(password, 10);
     await prisma.user.update({ where: { id: target.id }, data: { passwordHash } });

@@ -118,14 +118,15 @@ export function AuthProvider({ children }) {
   };
 
   const isAdmin = user && ["Mandal Admin", "Administrator"].includes(user.role);
+  const isAdministrator = user && user.role === "Administrator";
 
   const listUsers = async () => {
     const { users } = await api.get("/users");
     return users;
   };
 
-  const updateUserRole = async (id, role) => {
-    const { user: updated } = await api.patch(`/users/${id}`, { role });
+  const updateUserRole = async (id, role, mandalId) => {
+    const { user: updated } = await api.patch(`/users/${id}`, { role, mandalId });
     if (user?.id === id) setUser(updated);
     return updated;
   };
@@ -144,6 +145,7 @@ export function AuthProvider({ children }) {
         user,
         ready,
         isAdmin,
+        isAdministrator,
         login,
         adminLogin,
         register,

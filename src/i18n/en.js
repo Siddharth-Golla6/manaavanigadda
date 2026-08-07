@@ -445,6 +445,7 @@ export default {
   "api.Comment text is required.": "Comment text is required.",
   "api.You've already supported this issue.": "You've already supported this issue.",
   "api.Invalid role.": "Invalid role.",
+  "api.Choose a Mandal for this volunteer.": "Choose a Mandal for this volunteer.",
   "api.User not found.": "User not found.",
   "api.You can't remove your own account.": "You can't remove your own account.",
   "api.Phone number and a valid purpose are required.": "Phone number and a valid purpose are required.",

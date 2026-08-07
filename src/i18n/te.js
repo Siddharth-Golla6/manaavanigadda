@@ -443,6 +443,7 @@ export default {
   "api.Comment text is required.": "వ్యాఖ్య వచనం అవసరం.",
   "api.You've already supported this issue.": "మీరు ఇప్పటికే ఈ సమస్యకు మద్దతు ఇచ్చారు.",
   "api.Invalid role.": "చెల్లని పాత్ర.",
+  "api.Choose a Mandal for this volunteer.": "ఈ వాలంటీర్ కోసం ఒక మండలాన్ని ఎంచుకోండి.",
   "api.User not found.": "వినియోగదారు కనుగొనబడలేదు.",
   "api.You can't remove your own account.": "మీరు మీ స్వంత ఖాతాను తీసివేయలేరు.",
   "api.Phone number and a valid purpose are required.": "ఫోన్ నంబర్ మరియు చెల్లుబాటు అయ్యే ప్రయోజనం అవసరం.",

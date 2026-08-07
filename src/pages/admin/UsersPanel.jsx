@@ -5,21 +5,22 @@ import { Select } from "../../components/FormField";
 import { useAuth } from "../../context/AuthContext";
 import { useActivityLog } from "../../context/ActivityLogContext";
 import { useLang } from "../../context/LanguageContext";
-import { getMandalById } from "../../data/geography";
+import { MANDALS, getMandalById } from "../../data/geography";
 
 const ALL_ROLES = ["Resident", "Volunteer", "Mandal Admin", "Administrator"];
 
 export default function UsersPanel() {
   const { t } = useLang();
-  const { listUsers, updateUserRole, deleteUser, resetUserPassword, user: current } = useAuth();
+  const { listUsers, updateUserRole, deleteUser, resetUserPassword, isAdministrator, user: current } = useAuth();
   const { log } = useActivityLog();
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
 
   // Only an Administrator can see or grant the Administrator role — a Mandal
   // Admin managing users shouldn't even know it's an option. The backend
-  // enforces this independently (routes/users.js), this just keeps the UI
-  // from offering an action that would be rejected anyway.
+  // enforces this independently (routes/users.js — it also omits
+  // Administrator accounts from the list entirely for non-Administrators),
+  // this just keeps the UI from offering an action that would be rejected.
   const isSelfAdministrator = current?.role === "Administrator";
   const assignableRoles = isSelfAdministrator ? ALL_ROLES : ALL_ROLES.filter((r) => r !== "Administrator");
 
@@ -37,8 +38,23 @@ export default function UsersPanel() {
   const handleRole = async (u, role) => {
     setError("");
     try {
-      await updateUserRole(u.id, role);
+      // Becoming a Volunteer needs a Mandal — default to whatever they
+      // already had (e.g. from registration), or the first Mandal, and let
+      // the admin adjust it right away via the Mandal column that appears.
+      const mandalId = role === "Volunteer" ? u.mandalId || MANDALS[0].id : undefined;
+      await updateUserRole(u.id, role, mandalId);
       await log(current?.name || "Admin", `Changed ${u.name}'s role to ${role}`);
+      refresh();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleMandal = async (u, mandalId) => {
+    setError("");
+    try {
+      await updateUserRole(u.id, u.role, mandalId);
+      await log(current?.name || "Admin", `Moved volunteer ${u.name} to a different Mandal`);
       refresh();
     } catch (err) {
       setError(err.message);
@@ -90,12 +106,25 @@ export default function UsersPanel() {
               const canEditRole = isSelfAdministrator || u.role !== "Administrator";
               const rowOptions = canEditRole ? assignableRoles : [...assignableRoles, u.role];
               const canDelete = u.id !== current?.id && (isSelfAdministrator || u.role !== "Administrator");
-              const canResetPassword = isSelfAdministrator || u.role !== "Administrator";
               return (
                 <tr key={u.id}>
                   <td className="px-4 py-3 font-semibold text-neutral-800 dark:text-neutral-100">{u.name}</td>
                   <td className="px-4 py-3 text-neutral-500">{u.phone}</td>
-                  <td className="px-4 py-3 text-neutral-500">{u.mandalId ? getMandalById(u.mandalId)?.name : "—"}</td>
+                  <td className="px-4 py-3 text-neutral-500">
+                    {u.role === "Volunteer" ? (
+                      <Select
+                        value={u.mandalId || ""}
+                        onChange={(e) => handleMandal(u, e.target.value)}
+                        className="!py-1.5 text-xs"
+                      >
+                        {MANDALS.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </Select>
+                    ) : (
+                      u.mandalId ? getMandalById(u.mandalId)?.name : "—"
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <Select
                       value={u.role}
@@ -110,14 +139,15 @@ export default function UsersPanel() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button
-                        onClick={() => handleResetPassword(u)}
-                        disabled={!canResetPassword}
-                        className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 disabled:opacity-30 dark:hover:bg-neutral-800"
-                        title={t("admin.users.resetPassword")}
-                      >
-                        <KeyRound size={16} />
-                      </button>
+                      {isAdministrator && (
+                        <button
+                          onClick={() => handleResetPassword(u)}
+                          className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                          title={t("admin.users.resetPassword")}
+                        >
+                          <KeyRound size={16} />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(u)}
                         disabled={!canDelete}
