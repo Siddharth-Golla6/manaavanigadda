@@ -9,6 +9,15 @@
       content="Mana Avanigadda — One Digital Platform for Community Development, Public Grievances, Financial Transparency and Citizen Participation in Avanigadda Constituency."
     />
     <title>Mana Avanigadda | Transparency • Dedication • Progress</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("md_theme");
+          var dark = stored ? stored === "dark" : true;
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

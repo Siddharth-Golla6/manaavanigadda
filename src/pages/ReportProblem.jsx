@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadCloud, CheckCircle2, X } from "lucide-react";
 import GlassCard from "../components/GlassCard";
@@ -33,6 +33,13 @@ export default function ReportProblem() {
   const [photoDataUrls, setPhotoDataUrls] = useState([]);
   const [error, setError] = useState("");
   const [submittedId, setSubmittedId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  // A ref (not state) gates the actual submit — state updates from several
+  // synchronous clicks in the same tick get batched by React and can all
+  // still see the old `submitting` value before a re-render happens, so a
+  // state-only guard doesn't reliably stop a fast double/triple click. A ref
+  // mutates immediately and is shared across every call, so it can't race.
+  const submittingRef = useRef(false);
 
   const MAX_PHOTOS = 10;
   const villages = form.mandalId ? getVillagesForMandal(form.mandalId) : [];
@@ -66,6 +73,7 @@ export default function ReportProblem() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     setError("");
     if (!form.title.trim() || !form.category || !form.mandalId || !form.description.trim() || !reporterName.trim() || !reporterPhone.trim()) {
       setError(t("report.error.required"));
@@ -74,6 +82,8 @@ export default function ReportProblem() {
 
     const mandal = MANDALS.find((m) => m.id === form.mandalId);
 
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
       const photos = photoDataUrls.length
         ? photoDataUrls
@@ -96,6 +106,8 @@ export default function ReportProblem() {
       setSubmittedId(created.id);
     } catch (err) {
       setError(err.message);
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -275,9 +287,10 @@ export default function ReportProblem() {
 
         <button
           type="submit"
-          className="w-full rounded-lg bg-brand-red py-3 text-sm font-bold text-white shadow-md transition hover:bg-brand-red-dark"
+          disabled={submitting}
+          className="w-full rounded-lg bg-brand-red py-3 text-sm font-bold text-white shadow-md transition hover:bg-brand-red-dark disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {t("report.submit")}
+          {submitting ? t("report.submitting") : t("report.submit")}
         </button>
       </GlassCard>
     </div>

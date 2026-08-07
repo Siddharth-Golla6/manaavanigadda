@@ -224,6 +224,7 @@ export default {
   "report.removePhoto": "ఫోటోను తీసివేయండి",
   "report.selectedAlt": "ఎంచుకున్నది {n}",
   "report.submit": "నివేదికను సమర్పించండి",
+  "report.submitting": "సమర్పిస్తోంది…",
   "report.error.required": "దయచేసి శీర్షిక, వర్గం, మండలం మరియు వివరణను నింపండి.",
   "report.error.maxPhotos": "మీరు గరిష్టంగా {max} ఫోటోలను అప్‌లోడ్ చేయవచ్చు.",
   "report.error.badPhoto": "ఎంచుకున్న ఫోటోలలో ఒకటి చదవలేకపోయాము. వేరే ఫైల్‌ను ప్రయత్నించండి.",

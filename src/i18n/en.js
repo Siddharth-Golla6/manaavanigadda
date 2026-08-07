@@ -225,6 +225,7 @@ export default {
   "report.removePhoto": "Remove photo",
   "report.selectedAlt": "Selected {n}",
   "report.submit": "Submit Report",
+  "report.submitting": "Submitting…",
   "report.error.required": "Please fill in Title, Category, Mandal and Description.",
   "report.error.maxPhotos": "You can upload up to {max} photos.",
   "report.error.badPhoto": "One of the selected photos couldn't be read. Try a different file.",
