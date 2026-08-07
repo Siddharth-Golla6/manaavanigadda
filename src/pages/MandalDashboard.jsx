@@ -94,9 +94,8 @@ export default function MandalDashboard() {
           <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
             {volunteers.length === 0 && <li className="text-neutral-400">{t("mandal.noVolunteers")}</li>}
             {volunteers.slice(0, 3).map((v) => (
-              <li key={v.id} className="flex justify-between">
+              <li key={v.id}>
                 <span>{v.name}</span>
-                <span className="font-semibold text-brand-red">{t("mandal.resolvedCount", { n: v.resolved })}</span>
               </li>
             ))}
           </ul>
