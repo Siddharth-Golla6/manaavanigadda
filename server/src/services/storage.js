@@ -8,11 +8,8 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
 import crypto from "crypto";
+import { isSafeSvgPlaceholder } from "../utils/svgPlaceholder.js";
 
-// The tiny inline SVG placeholder used when a report has no real photo
-// (src/utils/placeholderImage.js) — passed through unchanged. Nothing is
-// gained by uploading generated vector art to object storage.
-const SVG_PLACEHOLDER_PATTERN = /^data:image\/svg\+xml;utf8,/;
 const BASE64_IMAGE_PATTERN = /^data:image\/(png|jpe?g|webp|gif);base64,(.+)$/;
 
 let client = null;
@@ -38,7 +35,10 @@ function getClient() {
 
 // Uploads one photo (a base64 data URI) to R2, returning its public URL.
 export async function uploadPhoto(dataUri, { keyPrefix = "photos" } = {}) {
-  if (SVG_PLACEHOLDER_PATTERN.test(dataUri)) return dataUri;
+  // Only the exact, safely-encoded themed placeholder passes through
+  // unchanged — anything else is a real photo and always gets re-encoded
+  // through sharp below, regardless of what content type it claims to be.
+  if (isSafeSvgPlaceholder(dataUri)) return dataUri;
 
   const match = BASE64_IMAGE_PATTERN.exec(dataUri);
   if (!match) throw new Error("Unsupported photo format.");

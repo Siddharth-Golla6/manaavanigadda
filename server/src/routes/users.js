@@ -105,7 +105,14 @@ router.patch(
     if (!target) return res.status(404).json({ error: "User not found." });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await prisma.user.update({ where: { id: target.id }, data: { passwordHash } });
+    // tokenVersion++ signs out every session already issued for this account —
+    // the same reason the self-service reset does it. Without this, a reason
+    // to force-reset someone's password (e.g. a suspected compromise) wouldn't
+    // actually revoke whatever session the attacker already holds.
+    await prisma.user.update({
+      where: { id: target.id },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
+    });
     res.status(204).end();
   })
 );
