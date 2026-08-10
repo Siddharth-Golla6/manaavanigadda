@@ -300,7 +300,7 @@ export default {
   "footer.about": "About Us",
   "footer.contact": "Contact",
   "footer.location": "Avanigadda Constituency, Andhra Pradesh",
-  "footer.copyright": "© {year} Mana Avanigadda. Prototype build — sample data shown throughout.",
+  "footer.copyright": "© {year} Mana Avanigadda. All rights reserved",
 
   // ---- Not found ----
   "notFound.code": "404",

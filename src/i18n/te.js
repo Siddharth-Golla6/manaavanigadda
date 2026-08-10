@@ -299,7 +299,7 @@ export default {
   "footer.about": "మా గురించి",
   "footer.contact": "సంప్రదించండి",
   "footer.location": "అవనిగడ్డ నియోజకవర్గం, ఆంధ్రప్రదేశ్",
-  "footer.copyright": "© {year} మన అవనిగడ్డ. ప్రోటోటైప్ బిల్డ్ — నమూనా డేటా చూపబడింది.",
+  "footer.copyright": "© {year} మన అవనిగడ్డ. సర్వహక్కులు సురక్షితం",
 
   // Not found
   "notFound.code": "404",
